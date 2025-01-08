@@ -1,4 +1,4 @@
-
+﻿
 $DistrDirectory = 'C:\1cv8.adm'
 $username = "USR1CV8"
 
