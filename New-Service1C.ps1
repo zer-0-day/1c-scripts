@@ -1,5 +1,6 @@
 
 $DistrDirectory = 'C:\1cv8.adm'
+$username = "USR1CV8"
 
 # Стартовое меню
 function StartMenu {
@@ -22,6 +23,7 @@ function StartMenu {
     Write-Host "-----------------------------------------------" -ForegroundColor Blue
     Write-Host
     
+
        while($true)
     {
     $choice = Read-Host "Select the menu item: "
@@ -42,13 +44,13 @@ function StartMenu {
 # Сбор информации при старте скрипта        
 function StartInfo {
  Write-Host "-----------------------------------------------" -ForegroundColor Blue
- Write-host "Скрипт автоматизации ручных задач установки и обновления сервера 1С. v 1.0b" -BackgroundColor Black -ForegroundColor Green
+ Write-host "Скрипт автоматизации ручных задач установки и обновления сервера 1С. v 1.0" -BackgroundColor Black -ForegroundColor Green
  Write-Host "-----------------------------------------------" -ForegroundColor Blue
  Write-Host "-----------------------------------------------" -ForegroundColor Blue
  Write-host "Запрос и сортировка версий 1С" -BackgroundColor Black -ForegroundColor Green
  Write-Host "-----------------------------------------------" -ForegroundColor Blue
- $install1CVersion = Get-WmiObject Win32_Product | Where-Object {$_.Name -match "^(1С|1C)"} 
- $ListVersion = $install1CVersion.Name -replace '1С:Предприятие 8' , ''  -replace 'Тонкий клиент', '' -replace '[(]' , '' -replace '[)]' , '' -replace 'x86-64' , '' -replace ' ' , '' 
+ $install1CVersion = Get-Package | Where-Object {$_.Name -match "^(1С|1C)"} 
+ $ListVersion =  $install1CVersion.version #$install1CVersion.Name -replace '1С:Предприятие 8' , ''  -replace 'Тонкий клиент', '' -replace '[(]' , '' -replace '[)]' , '' -replace 'x86-64' , '' -replace ' ' , '' 
  Write-Host "Все установленные платформы 1С: " -BackgroundColor Black -ForegroundColor Green
  Write-Host "-----------------------------------------------" -ForegroundColor Blue
  $ListVersion |Sort-Object -Descending
@@ -299,7 +301,7 @@ function MakeLinks {
         New-Item -ItemType Junction -Path "C:\Program Files\1cv8\current" -Target $current
         Write-Host 'Создана ссылка на платформу версии' $version.Name 'Путь' $current
     }
-    Return
+    StartMenu
 }
 #установка платформы 1С
 function InstallPlatform {
@@ -380,7 +382,7 @@ function InstallPlatform {
         }
            
     }
-    Return
+    StartMenu
 }
 
 function FullInstall {
@@ -645,6 +647,7 @@ if (Test-Path -Path "C:\Program Files\1cv8") {
     }
 }
 }
+StartMenu
 function 1CDistrFolder {
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
@@ -686,7 +689,7 @@ function 1CDistrFolder {
     $DistrDirectory = 'C:\1cv8.adm'
     Get-ChildItem  $DistrDirectory  | Rename-Item -NewName {$_.Name -replace 'windows64full_', ''} -erroraction 'silentlycontinue'
     Get-ChildItem  $DistrDirectory  | Rename-Item -NewName {$_.Name -replace '_', '.'} -erroraction 'silentlycontinue'
-    
+    StartMenu
 }
 
 #Обновление PowerShell
@@ -717,6 +720,7 @@ else {
 }
     
 }
+StartMenu
 # Частичная установка сервера 1С. Устанавливается служба, создаются ссылки.
 function PartialInstall{
   # Проверка существования линка на папку с дистрибутивами 1С
@@ -830,12 +834,12 @@ function PartialInstall{
                         $form.Controls.Add($cancelButton)
                         $label = New-Object System.Windows.Forms.Label
                         $label.Location = New-Object System.Drawing.Point(10,20)
-                        $label.Size = New-Object System.Drawing.Size(280,20)
+                        $label.Size = New-Object System.Drawing.Size(280,27)
                         $label.Text = 'Введите первые две цифры номера порта (по умолчанию 15, если установлен 1 сервер):'
                         $form.Controls.Add($label)
                         $textBox = New-Object System.Windows.Forms.TextBox
-                        $textBox.Location = New-Object System.Drawing.Point(10,40)
-                        $textBox.Size = New-Object System.Drawing.Size(260,20)
+                        $textBox.Location = New-Object System.Drawing.Point(10,55)
+                        $textBox.Size = New-Object System.Drawing.Size(260,40)
                         $form.Controls.Add($textBox)
                         $form.Topmost = $true
                         $form.Add_Shown({$textBox.Select()})
@@ -886,7 +890,13 @@ function PartialInstall{
                             $GetSrvCatalog = $textBox.Text
                         }
                         
-                        $SrvCatalog = '"' + $GetSrvCatalog + '"'
+                        $SrvCatalog =  $GetSrvCatalog
+                        $ACL = Get-Acl $SrvCatalog 
+                        $setting = "$username", "FullControl", "Allow"
+                        $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule $setting
+                        $ACL.SetAccessRule($AccessRule)
+                        $ACL | Set-Acl $SrvCatalog
+                        $ACL.SetAccessRuleProtection($false, $true)
                         $RunPath = '"C:\Program Files\1cv8\current\bin\ragent.exe"'
                         $DirectoryPath = "C:\Program Files\1cv8\current\bin\"
                         $ServicePath = $RunPath + ' ' + '-srvc -agent -regport' + ' ' + $BasePort + ' ' + '-port' + ' ' + $CtrlPort + ' ' + '-range' + ' ' + $RangePort + ' ' + '-debug -d' + ' ' + $SrvCatalog
@@ -902,6 +912,7 @@ function PartialInstall{
                             Write-Host 'Библиотека radmin зарегистрирована' -BackgroundColor Black -ForegroundColor Green
 }
 }
+StartMenu
 
 # Информация о сервере
 StartInfo
